@@ -7,6 +7,7 @@
 #include "framework.h"
 
 bool FirstHideWindow;
+std::wstring ExeFileDrc;
 
 
 ////////////////////////////////////////////////////////////////////////////
@@ -67,6 +68,43 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     //
 
     FirstHideWindow = false;
+    ExeFileDrc = NULLSTR;
+
+
+    ////////////////////////////////////////////////////////////////////////////
+    // 
+    // 実行ファイルのディレクトリを取得
+    //
+    
+    TCHAR UserName[UNLEN + 1] = {};
+
+    DWORD Length = UNLEN + 1;
+    LPDWORD UserNameLength = &Length;
+
+    BOOL IfGetUserName = GetUserName(UserName, UserNameLength);
+
+    if (IfGetUserName) {
+
+        ExeFileDrc = USERDIRECTORY;
+        ExeFileDrc.append(DOUBLESLASH);
+
+
+        ////////////////////////////////////////////////////////////////////////////
+        // 
+        // 変換可能な状態にする
+        //
+
+        int count = static_cast<int>(*UserNameLength);
+
+        for (int i = 0; i < (count - 1); i++)
+            ExeFileDrc.append(1, UserName[i]);
+
+        ExeFileDrc.append(DOUBLESLASH);
+        ExeFileDrc.append(SOURCEFILEEXE);
+    }
+    else
+        return 0;
+
 
     // グローバル文字列を初期化する
     LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);

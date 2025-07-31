@@ -17,6 +17,7 @@
 #include <tchar.h>
 #include <shellapi.h>
 #include <string>
+#include <Lmcons.h>
 
 
 ////////////////////////////////

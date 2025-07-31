@@ -7,4 +7,8 @@
 #define WM_TRAYICON      0x0405
 #define TIMER_ID         1
 #define TIMERMLLISEC     150
+#define SOURCEFILEEXE    L"SetInitializationPC\\SOURCE\\SetInitializationPC.exe"
+#define USERDIRECTORY    L"C:\\Users"
+#define DOUBLESLASH      L"\\"
+#define NULLSTR          L""
 
