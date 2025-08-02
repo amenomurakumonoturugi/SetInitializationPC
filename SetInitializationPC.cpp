@@ -8,6 +8,7 @@
 
 bool FirstHideWindow;
 std::wstring ExeFileDrc;
+std::wstring FileError;
 
 
 ////////////////////////////////////////////////////////////////////////////
@@ -69,11 +70,13 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
     FirstHideWindow = false;
     ExeFileDrc = NULLSTR;
+    FileError = NULLSTR;
+    NeedFileCheck.MemberInitialization();
 
 
     ////////////////////////////////////////////////////////////////////////////
     // 
-    // 実行ファイルのディレクトリを取得
+    // 実行ファイルのユーザー名を取得
     //
     
     TCHAR UserName[UNLEN + 1] = {};
@@ -91,7 +94,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
         ////////////////////////////////////////////////////////////////////////////
         // 
-        // 変換可能な状態にする
+        // 指定のディレクトリを判定
         //
 
         int count = static_cast<int>(*UserNameLength);
@@ -99,8 +102,250 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         for (int i = 0; i < (count - 1); i++)
             ExeFileDrc.append(1, UserName[i]);
 
-        ExeFileDrc.append(DOUBLESLASH);
-        ExeFileDrc.append(SOURCEFILEEXE);
+        ExeFileDrc = Set_Folder_File_Name(DOUBLESLASH, FIRSTFOLDER, ExeFileDrc);
+        NeedFileCheck.SetFolderName(ExeFileDrc);
+
+
+        ////////////////////////////////////////////////////////////////////////////
+        // 
+        // 最初のディレクトリを判定
+        //
+
+        if (NeedFileCheck.FolderExists()) {
+
+            NeedFileCheck.MemberInitialization();
+
+            ExeFileDrc = Set_Folder_File_Name(DOUBLESLASH, SECONDFOLDER, ExeFileDrc);
+            NeedFileCheck.SetFolderName(ExeFileDrc);
+
+
+            ////////////////////////////////////////////////////////////////////////////
+            // 
+            // 2番目のディレクトリを判定
+            //
+
+            if (NeedFileCheck.FolderExists()) {
+
+                NeedFileCheck.MemberInitialization();
+                ExeFileDrc = Set_Folder_File_Name(DOUBLESLASH, FILENAME, ExeFileDrc);
+
+
+                ////////////////////////////////////////////////////////////////////////////
+                // 
+                // ファイル名のディレクトリを判定
+                //
+
+                if (NeedFileCheck.FileExists()) {
+
+
+                    ////////////////////////////////////////////////////////////////////////////
+                    // 
+                    // 実行ファイルをコピー
+                    //
+
+                    std::error_code Error;
+
+                    CopyFile_EXE(ExeFileDrc, FileError, Error);
+                }
+            }
+            else {
+
+                std::error_code ErrorCode = NeedFileCheck.GetErrorCode();
+
+
+                ////////////////////////////////////////////////////////////////////////////
+                // 
+                // フォルダーがない場合
+                //
+
+                if (ErrorCode.default_error_condition() == std::errc::no_such_file_or_directory ||
+                    ErrorCode == std::error_condition()) {
+
+                    std::error_code Error;
+
+                    if (std::filesystem::create_directory(ExeFileDrc, Error)) {
+
+
+                        ////////////////////////////////////////////////////////////////////////////
+                        // 
+                        // 実行ファイルをコピー
+                        //
+
+                        CopyFile_EXE(ExeFileDrc, FileError, Error);
+                    }
+                    else {
+
+
+                        ////////////////////////////////////////////////////////////////////////////
+                        // 
+                        // アクセス権限がない場合
+                        //
+
+                        if (Error.default_error_condition() == std::errc::permission_denied) {
+
+                            FileError = FILE_ERROR_ACCESS_FAILED;
+                        }
+
+
+                        ////////////////////////////////////////////////////////////////////////////
+                        // 
+                        // デバイスが存在しない場合
+                        //
+
+                        if (Error.default_error_condition() == std::errc::no_such_device_or_address) {
+
+                            FileError = FILE_ERROR_DEVICE_NOT_FAUND;
+                        }
+
+
+                        ////////////////////////////////////////////////////////////////////////////
+                        // 
+                        // その他の場合
+                        //
+
+                        if (Error.default_error_condition() != std::errc::permission_denied &&
+                            Error.default_error_condition() != std::errc::no_such_device_or_address) {
+
+                            FileError = FILE_ERROR_UNKNOWN;
+                        }
+                    }
+                }
+                else {
+
+
+                    ////////////////////////////////////////////////////////////////////////////
+                    // 
+                    // アクセス権限がない場合
+                    //
+
+                    if (ErrorCode.default_error_condition() == std::errc::permission_denied) {
+
+                        FileError = FILE_ERROR_ACCESS_FAILED;
+                    }
+
+                    ////////////////////////////////////////////////////////////////////////////
+                    // 
+                    // デバイスが存在しない場合
+                    //
+
+                    if (ErrorCode.default_error_condition() == std::errc::no_such_device_or_address) {
+
+                        FileError = FILE_ERROR_DEVICE_NOT_FAUND;
+                    }
+
+
+                    ////////////////////////////////////////////////////////////////////////////
+                    // 
+                    // その他の場合
+                    //
+
+                    if (ErrorCode.default_error_condition() != std::errc::permission_denied &&
+                        ErrorCode.default_error_condition() != std::errc::no_such_device_or_address) {
+
+                        FileError = FILE_ERROR_UNKNOWN;
+                    }
+                }
+            }
+        }
+        else {
+
+            std::error_code ErrorCode = NeedFileCheck.GetErrorCode();
+
+
+            ////////////////////////////////////////////////////////////////////////////
+            // 
+            // フォルダーがない場合
+            //
+
+            if (ErrorCode.default_error_condition() == std::errc::no_such_file_or_directory ||
+                ErrorCode == std::error_condition()) {
+
+                std::error_code Error;
+                ExeFileDrc = Set_Folder_File_Name(DOUBLESLASH, SECONDFOLDER, ExeFileDrc);
+
+                if (std::filesystem::create_directories(ExeFileDrc, Error)) {
+
+
+                    ////////////////////////////////////////////////////////////////////////////
+                    // 
+                    // 実行ファイルをコピー
+                    //
+
+                    CopyFile_EXE(ExeFileDrc, FileError, Error);
+                }
+                else {
+
+
+                    ////////////////////////////////////////////////////////////////////////////
+                    // 
+                    // アクセス権限がない場合
+                    //
+
+                    if (Error.default_error_condition() == std::errc::permission_denied) {
+
+                        FileError = FILE_ERROR_ACCESS_FAILED;
+                    }
+
+
+                    ////////////////////////////////////////////////////////////////////////////
+                    // 
+                    // デバイスが存在しない場合
+                    //
+
+                    if (Error.default_error_condition() == std::errc::no_such_device_or_address) {
+
+                        FileError = FILE_ERROR_DEVICE_NOT_FAUND;
+                    }
+
+
+                    ////////////////////////////////////////////////////////////////////////////
+                    // 
+                    // その他の場合
+                    //
+
+                    if (Error.default_error_condition() != std::errc::permission_denied &&
+                        Error.default_error_condition() != std::errc::no_such_device_or_address) {
+
+                        FileError = FILE_ERROR_UNKNOWN;
+                    }
+                }
+            }
+            else {
+
+
+                ////////////////////////////////////////////////////////////////////////////
+                // 
+                // アクセス権限がない場合
+                //
+
+                if (ErrorCode.default_error_condition() == std::errc::permission_denied) {
+
+                    FileError = FILE_ERROR_ACCESS_FAILED;
+                }
+
+                ////////////////////////////////////////////////////////////////////////////
+                // 
+                // デバイスが存在しない場合
+                //
+
+                if (ErrorCode.default_error_condition() == std::errc::no_such_device_or_address) {
+
+                    FileError = FILE_ERROR_DEVICE_NOT_FAUND;
+                }
+
+
+                ////////////////////////////////////////////////////////////////////////////
+                // 
+                // その他の場合
+                //
+
+                if (ErrorCode.default_error_condition() != std::errc::permission_denied &&
+                    ErrorCode.default_error_condition() != std::errc::no_such_device_or_address) {
+
+                    FileError = FILE_ERROR_UNKNOWN;
+                }
+            }
+        }
     }
     else
         return 0;

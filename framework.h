@@ -18,6 +18,9 @@
 #include <shellapi.h>
 #include <string>
 #include <Lmcons.h>
+#include <iostream>
+#include <fstream>
+#include <filesystem>
 
 
 ////////////////////////////////
@@ -26,4 +29,5 @@
 //
 
 #include "define.h"
+#include "class.h"
 #include "function.h"
